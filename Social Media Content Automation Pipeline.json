@@ -1,0 +1,519 @@
+{
+  "name": "Social Media Content Automation Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "0350c901-25a3-4e9e-8ca3-5dfee337cb1c",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI",
+          "mode": "list",
+          "cachedResultName": "Social Media Automation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "RSS Sources",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "296ff4a6-d8e1-4d3c-ba83-4af200c72a5d",
+      "name": "Read RSS Sources",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        48,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ISD4F8bP6cr5P2bP",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "id": "ad3d29df-a520-4117-97b9-61d250d2b05e",
+      "name": "Fetch RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const title = item.json.title || '';\n  const link = item.json.link || '';\n  const summary = item.json.contentSnippet || item.json.summary || item.json.content || '';\n  const category = item.json.category || 'Technology';\n  const pubDate = item.json.pubDate || item.json.isoDate || new Date().toISOString();\n\n  // Only include recent articles (last 24 hours)\n  const articleDate = new Date(pubDate);\n  const now = new Date();\n  const hoursDiff = (now - articleDate) / (1000 * 60 * 60);\n\n  if (hoursDiff <= 24 && title && link) {\n    results.push({\n      json: {\n        title: title.substring(0, 200),\n        source_url: link,\n        category: category,\n        summary: summary.substring(0, 500),\n        pub_date: pubDate\n      }\n    });\n  }\n}\n\nif (results.length === 0) {\n  return [{ json: { skip: true, message: 'No recent articles found' } }];\n}\n\n// Return max 3 articles to avoid Gemini rate limits\nreturn results.slice(0, 3);"
+      },
+      "id": "3b82fb5a-6006-4812-93b4-334656d1297e",
+      "name": "Filter Recent Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "id": "0a1ff2a5-38c8-4505-ae4b-fdf2e3ae3a13",
+      "name": "Check Skip",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        688,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI",
+          "mode": "list",
+          "cachedResultName": "Social Media Automation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "RSS Sources",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "454c35a1-d68f-4cae-8329-3afb8e2fbebc",
+      "name": "Fetch Existing Posts",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        912,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ISD4F8bP6cr5P2bP",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const newArticles = $('Check Skip').all();\nconst existingPosts = $input.all();\n\n// Get all existing URLs\nconst existingUrls = existingPosts\n  .map(p => p.json.source_url || '')\n  .filter(url => url !== '');\n\n// Filter out duplicates\nconst unique = newArticles.filter(article => {\n  return !existingUrls.includes(article.json.source_url);\n});\n\nif (unique.length === 0) {\n  return [{ json: { skip: true, message: 'All articles already posted' } }];\n}\n\nreturn unique;"
+      },
+      "id": "25eaae96-5600-4360-8ef6-bd342347f83f",
+      "name": "Duplicate Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "id": "f5961f23-ba80-418c-9999-683b2ea47cd5",
+      "name": "Check Duplicate Skip",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a LinkedIn content expert. Create an engaging LinkedIn post based on this article:\n\nTitle: {{ $json.title }}\nCategory: {{ $json.category }}\nSummary: {{ $json.summary }}\nSource: {{ $json.source_url }}\n\nWrite a LinkedIn post that:\n- Starts with a strong hook (question or bold statement)\n- Shares 2-3 key insights from the article\n- Relates it to AI automation or business growth\n- Ends with a thought-provoking question to drive engagement\n- Includes 3-5 relevant hashtags at the end\n- Is between 150-250 words\n- Sounds human, not robotic\n\nReturn only the post text. No extra explanation.",
+        "batching": {}
+      },
+      "id": "72d798b8-4039-45da-969e-c6aeafab3f9a",
+      "name": "Generate LinkedIn Post",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1584,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst articles = $('Check Duplicate Skip').all();\n\nreturn items.map((item, index) => {\n  const article = articles[index]?.json || {};\n  return {\n    json: {\n      title: article.title || '',\n      source_url: article.source_url || '',\n      category: article.category || '',\n      generated_post: item.json.text || '',\n      status: 'Ready',\n      created_at: new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' })\n    }\n  };\n});"
+      },
+      "id": "3842d65f-1e3d-4511-b2ef-e9e24042ca74",
+      "name": "Prepare Post Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI",
+          "mode": "list",
+          "cachedResultName": "Social Media Automation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 192386286,
+          "mode": "list",
+          "cachedResultName": "Content Calendar",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1g0FF8WGH9p-b7QW9wLAkdD7jOzkZlN6zieZT2X4JEeI/edit#gid=192386286"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $json.title }}",
+            "source_url": "={{ $json.source_url }}",
+            "category": "={{ $json.category }}",
+            "generated_post": "={{ $json.generated_post }}",
+            "status": "={{ $json.status }}",
+            "created_at": "={{ $json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "generated_post",
+              "displayName": "generated_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "cd6522d7-5bc1-4518-bfcb-a034251b0068",
+      "name": "Save to Content Calendar",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2160,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ISD4F8bP6cr5P2bP",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "abdulrehman.tp.786@gmail.com",
+        "subject": "=📱 {{ $json.category }} Post Ready — {{ $json.title }}",
+        "emailType": "text",
+        "message": "=Your LinkedIn post is ready to publish!\n\nARTICLE: {{ $json.title }}\nSOURCE: {{ $json.source_url }}\nCATEGORY: {{ $json.category }}\n\n--- GENERATED POST ---\n\n{{ $json.generated_post }}\n\n--- END ---\n\nCopy the post above and share it on LinkedIn.\nGenerated at: {{ $json.created_at }}",
+        "options": {
+          "senderName": "Social Media Bot"
+        }
+      },
+      "id": "4a18dba5-b0d0-44eb-b42d-5a0e94234348",
+      "name": "Email Post to Self",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2384,
+        0
+      ],
+      "webhookId": "2ad18661-617b-4af9-a6ce-9694b0a93aac",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "D88BGBXE4gJfcz9o",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1664,
+        224
+      ],
+      "id": "e81e9a1d-ae14-48b7-8bc5-1ba79024ea15",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "suSllveZKu0SFV0m",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read RSS Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read RSS Sources": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Filter Recent Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Recent Articles": {
+      "main": [
+        [
+          {
+            "node": "Check Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Skip": {
+      "main": [
+        [
+          {
+            "node": "Fetch Existing Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Existing Posts": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Check": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate Skip": {
+      "main": [
+        [
+          {
+            "node": "Generate LinkedIn Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Prepare Post Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Post Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Content Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Content Calendar": {
+      "main": [
+        [
+          {
+            "node": "Email Post to Self",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate LinkedIn Post",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "81f05c8b-f1c2-49a8-b1b0-82b6783e81d5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "55f1d75fe3275b80789f74068e8ca5517017b2c7002f67c018846c89915420d3"
+  },
+  "id": "cIvnqCtqi6HMkcJ4",
+  "tags": []
+}
